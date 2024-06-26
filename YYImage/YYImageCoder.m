@@ -15,8 +15,7 @@
 #import <ImageIO/ImageIO.h>
 #import <Accelerate/Accelerate.h>
 #import <QuartzCore/QuartzCore.h>
-#import <MobileCoreServices/MobileCoreServices.h>
-#import <AssetsLibrary/AssetsLibrary.h>
+#import <CoreServices/CoreServices.h>
 #import <objc/runtime.h>
 #import <pthread.h>
 #import <zlib.h>
@@ -641,7 +640,7 @@ static inline CGFloat YYImageDegreesToRadians(CGFloat degrees) {
     return degrees * M_PI / 180;
 }
 
-CGColorSpaceRef YYCGColorSpaceGetDeviceRGB() {
+CGColorSpaceRef YYCGColorSpaceGetDeviceRGB(void) {
     static CGColorSpaceRef space;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -650,7 +649,7 @@ CGColorSpaceRef YYCGColorSpaceGetDeviceRGB() {
     return space;
 }
 
-CGColorSpaceRef YYCGColorSpaceGetDeviceGray() {
+CGColorSpaceRef YYCGColorSpaceGetDeviceGray(void) {
     static CGColorSpaceRef space;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -1437,7 +1436,7 @@ fail:
 
 #else
 
-BOOL YYImageWebPAvailable() {
+BOOL YYImageWebPAvailable(void) {
     return NO;
 }
 
@@ -2356,6 +2355,7 @@ CGImageRef YYCGImageCreateWithWebPData(CFDataRef webpData,
         } break;
         case YYImageTypeWebP: {
             _quality = 0.8;
+            _lossless = YES;
         } break;
         default:
             break;
@@ -2561,6 +2561,7 @@ CGImageRef YYCGImageCreateWithWebPData(CFDataRef webpData,
             CFRelease(extendedImage);
             return nil;
         }
+        CFRelease(extendedImage);
         pngDatas[0] = (__bridge id)(frameData);
         CFRelease(frameData);
     }
@@ -2790,23 +2791,6 @@ CGImageRef YYCGImageCreateWithWebPData(CFDataRef webpData,
 
 - (void)setYy_isDecodedForDisplay:(BOOL)isDecodedForDisplay {
     objc_setAssociatedObject(self, @selector(yy_isDecodedForDisplay), @(isDecodedForDisplay), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-- (void)yy_saveToAlbumWithCompletionBlock:(void(^)(NSURL *assetURL, NSError *error))completionBlock {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        NSData *data = [self _yy_dataRepresentationForSystem:YES];
-        ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
-        [library writeImageDataToSavedPhotosAlbum:data metadata:nil completionBlock:^(NSURL *assetURL, NSError *error){
-            if (!completionBlock) return;
-            if (pthread_main_np()) {
-                completionBlock(assetURL, error);
-            } else {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    completionBlock(assetURL, error);
-                });
-            }
-        }];
-    });
 }
 
 - (NSData *)yy_imageDataRepresentation {

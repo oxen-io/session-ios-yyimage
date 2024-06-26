@@ -26,13 +26,13 @@ __VA_ARGS__; \
 dispatch_semaphore_signal(view->_lock);
 
 
-static int64_t _YYDeviceMemoryTotal() {
+static int64_t _YYDeviceMemoryTotal(void) {
     int64_t mem = [[NSProcessInfo processInfo] physicalMemory];
     if (mem < -1) mem = -1;
         return mem;
 }
 
-static int64_t _YYDeviceMemoryFree() {
+static int64_t _YYDeviceMemoryFree(void) {
     mach_port_t host_port = mach_host_self();
     mach_msg_type_number_t host_size = sizeof(vm_statistics_data_t) / sizeof(integer_t);
     vm_size_t page_size;
@@ -528,6 +528,11 @@ typedef NS_ENUM(NSUInteger, YYAnimatedImageType) {
 - (void)displayLayer:(CALayer *)layer {
     if (_curFrame) {
         layer.contents = (__bridge id)_curFrame.CGImage;
+    } else {
+        // If we have no animation frames, call super implementation. iOS 14+ UIImageView use this delegate method for rendering.
+        if ([UIImageView instancesRespondToSelector:@selector(displayLayer:)]) {
+            [super displayLayer:layer];
+        }
     }
 }
 
@@ -577,7 +582,7 @@ typedef NS_ENUM(NSUInteger, YYAnimatedImageType) {
     if (currentAnimatedImageIndex >= _curAnimatedImage.animatedImageFrameCount) return;
     if (_curIndex == currentAnimatedImageIndex) return;
     
-    void (^block)() = ^{
+    void (^block)(void) = ^{
         LOCK(
              [_requestQueue cancelAllOperations];
              [_buffer removeAllObjects];
