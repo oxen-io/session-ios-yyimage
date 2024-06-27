@@ -11,7 +11,7 @@
 #import "YYBPGCoder.h"
 #import "UIView+YYAdd.h"
 #import <ImageIO/ImageIO.h>
-#import <MobileCoreServices/MobileCoreServices.h>
+#import <CoreServices/CoreServices.h>
 #import <QuartzCore/QuartzCore.h>
 
 
